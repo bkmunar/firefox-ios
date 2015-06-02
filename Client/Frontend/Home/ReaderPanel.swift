@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import UIKit
+import SnapKit
 import Storage
 import ReadingList
 
@@ -198,6 +199,12 @@ class ReadingListTableViewCell: SWTableViewCell {
     }
 }
 
+class ReadingListEmptyStateView: UIView {
+    convenience init() {
+        self.init(frame: CGRectZero)
+    }
+}
+
 class ReadingListPanel: UITableViewController, HomePanel, SWTableViewCellDelegate {
     weak var homePanelDelegate: HomePanelDelegate? = nil
     var profile: Profile!
@@ -206,6 +213,7 @@ class ReadingListPanel: UITableViewController, HomePanel, SWTableViewCellDelegat
 
     override func viewDidLoad() {
         super.viewDidLoad()
+
         tableView.rowHeight = ReadingListPanelUX.RowHeight
         tableView.separatorInset = UIEdgeInsetsZero
         tableView.layoutMargins = UIEdgeInsetsZero
@@ -213,12 +221,78 @@ class ReadingListPanel: UITableViewController, HomePanel, SWTableViewCellDelegat
         tableView.registerClass(ReadingListTableViewCell.self, forCellReuseIdentifier: "ReadingListTableViewCell")
 
         view.backgroundColor = AppConstants.PanelBackgroundColor
+
+        if let result = profile.readingList?.getAvailableRecords() where result.isSuccess {
+            records = result.successValue
+
+            // If no records have been added yet, we display the empty state
+            if records?.count == 0 {
+                tableView.scrollEnabled = false
+
+                let containerView = UIView(frame: tableView.bounds)
+                view.addSubview(containerView)
+                containerView.backgroundColor = UIColor.whiteColor()
+                containerView.autoresizingMask = UIViewAutoresizing.FlexibleHeight | UIViewAutoresizing.FlexibleWidth
+
+                let logoImageView = UIImageView(image: UIImage(named: "ReadingListEmptyPanel"))
+                containerView.addSubview(logoImageView)
+                logoImageView.snp_makeConstraints({ (make) -> Void in
+                    make.centerX.equalTo(containerView)
+                    make.top.equalTo(containerView).offset(30)
+                })
+
+                let welcomeLabel = UILabel()
+                containerView.addSubview(welcomeLabel)
+                welcomeLabel.text = NSLocalizedString("Welcome to your Reading List", comment: "")
+                welcomeLabel.font = UIFont.boldSystemFontOfSize(15)
+                welcomeLabel.textColor = UIColor.grayColor()
+                welcomeLabel.snp_makeConstraints({ (make) -> Void in
+                    make.centerX.equalTo(containerView)
+                    make.top.equalTo(logoImageView.snp_bottom).offset(30)
+                })
+
+                let readerModeLabel = UILabel()
+                containerView.addSubview(readerModeLabel)
+                readerModeLabel.text = NSLocalizedString("Open articles in reading view by tapping the icon when it appears in the title bar.", comment: "")
+                readerModeLabel.font = UIFont.systemFontOfSize(13)
+                readerModeLabel.textColor = UIColor.lightGrayColor()
+                readerModeLabel.numberOfLines = 0
+                readerModeLabel.snp_makeConstraints({ (make) -> Void in
+                    make.top.equalTo(welcomeLabel.snp_bottom).offset(30)
+                    make.left.equalTo(welcomeLabel.snp_left).offset(-20)
+                    make.width.equalTo(180)
+                })
+
+                let readerModeImageView = UIImageView(image: UIImage(named: "ReaderModeCircle"))
+                containerView.addSubview(readerModeImageView)
+                readerModeImageView.snp_makeConstraints({ (make) -> Void in
+                    make.centerY.equalTo(readerModeLabel)
+                    make.right.equalTo(welcomeLabel.snp_right)
+                })
+
+                let readingListLabel = UILabel()
+                containerView.addSubview(readingListLabel)
+                readingListLabel.text = NSLocalizedString("Add to your Reading List by tapping the icon in the Reader View controls.", comment: "")
+                readingListLabel.font = UIFont.systemFontOfSize(13)
+                readingListLabel.textColor = UIColor.lightGrayColor()
+                readingListLabel.numberOfLines = 0
+                readingListLabel.snp_makeConstraints({ (make) -> Void in
+                    make.top.equalTo(readerModeLabel.snp_bottom).offset(30)
+                    make.left.equalTo(readerModeLabel.snp_left)
+                    make.width.equalTo(180)
+                })
+
+                let readingListImageView = UIImageView(image: UIImage(named: "AddToReadingListCircle"))
+                containerView.addSubview(readingListImageView)
+                readingListImageView.snp_makeConstraints({ (make) -> Void in
+                    make.centerY.equalTo(readingListLabel)
+                    make.right.equalTo(welcomeLabel.snp_right)
+                })
+            }
+        }
     }
 
     override func viewWillAppear(animated: Bool) {
-        if let result = profile.readingList?.getAvailableRecords() where result.isSuccess {
-            records = result.successValue
-        }
     }
 
     override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
